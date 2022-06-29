@@ -3,7 +3,6 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 //  Refactor to support EIP-2718 enveloping by Mark Loit 2022
-
 import Foundation
 import BigInt
 
@@ -51,7 +50,6 @@ public struct EthereumTransaction: CustomStringConvertible {
         get { return envelope.parameters.data ?? Data() }
         set(newValue) { envelope.parameters.data = newValue }
     }
-<<<<<<< HEAD
 
     // transaction type specific parameters should be accessed with EthereumParameters
     public var parameters: EthereumParameters {
@@ -68,33 +66,8 @@ public struct EthereumTransaction: CustomStringConvertible {
     public var s: BigUInt { return envelope.s }
 
     private init() { preconditionFailure("Memberwise not supported") } // disable the memberwise initializer
-
     /// required by CustomString convertable
     /// returns a string description for the transaction and its data
-=======
-    
-    public init(gasPrice: BigUInt, gasLimit: BigUInt, to: EthereumAddress, value: BigUInt, data: Data) {
-        self.nonce = BigUInt(0)
-        self.gasPrice = gasPrice
-        self.gasLimit = gasLimit
-        self.value = value
-        self.data = data
-        self.to = to
-    }
-    
-    public init (nonce: BigUInt, gasPrice: BigUInt, gasLimit: BigUInt, to: EthereumAddress, value: BigUInt, data: Data, v: BigUInt, r: BigUInt, s: BigUInt) {
-        self.nonce = nonce
-        self.gasPrice = gasPrice
-        self.gasLimit = gasLimit
-        self.to = to
-        self.value = value
-        self.data = data
-        self.v = v
-        self.r = r
-        self.s = s
-    }
-    
->>>>>>> f9234b1 (fix)
     public var description: String {
         var toReturn = ""
         toReturn += "Transaction" + "\n"
@@ -162,31 +135,10 @@ public struct EthereumTransaction: CustomStringConvertible {
         if !(originalPublicKey.constantTimeComparisonTo(recoveredPublicKey)) { return false }
         return true
     }
-<<<<<<< HEAD
 
     /// clears the signature data
     public mutating func unsign() {
         self.envelope.clearSignatureData()
-=======
-    
-    public func encode(forSignature:Bool = false, chainID: BigUInt? = nil) -> Data? {
-        if (forSignature) {
-            if chainID != nil  {
-                let fields = [self.nonce, self.gasPrice, self.gasLimit, self.to.addressData, self.value!, self.data, chainID!, BigUInt(0), BigUInt(0)] as [AnyObject]
-                return RLP.encode(fields)
-            }
-            else if self.chainID != nil  {
-                let fields = [self.nonce, self.gasPrice, self.gasLimit, self.to.addressData, self.value!, self.data, self.chainID!, BigUInt(0), BigUInt(0)] as [AnyObject]
-                return RLP.encode(fields)
-            } else {
-                let fields = [self.nonce, self.gasPrice, self.gasLimit, self.to.addressData, self.value!, self.data] as [AnyObject]
-                return RLP.encode(fields)
-            }
-        } else {
-                let fields = [self.nonce, self.gasPrice, self.gasLimit, self.to.addressData, self.value!, self.data, self.v, self.r, self.s] as [AnyObject]
-                return RLP.encode(fields)
-        }
->>>>>>> f9234b1 (fix)
     }
 
     /// Apples the provided parameters/options in to the object, if set replacing what is currently set
@@ -248,7 +200,6 @@ public struct EthereumTransaction: CustomStringConvertible {
         if !request.isValid { return nil }
         return request
     }
-<<<<<<< HEAD
 
     /// - Returns: a raw bytestream of the transaction, encoded according to the transactionType
     func encode(for type: EncodeType = .transaction) -> Data? {
@@ -269,31 +220,6 @@ public struct EthereumTransaction: CustomStringConvertible {
         request.params = pars
         if !request.isValid { return nil }
         return request
-=======
-    
-    static func createRawTransaction(transaction: EthereumTransaction, transactionEncodeData: Data? = nil) -> JSONRPCrequest? {
-        if transactionEncodeData != nil {
-            let hex = transactionEncodeData!.toHexString().addHexPrefix().lowercased()
-            var request = JSONRPCrequest()
-            request.method = JSONRPCmethod.sendRawTransaction
-            let params = [hex] as Array<Encodable>
-            let pars = JSONRPCparams(params: params)
-            request.params = pars
-            if !request.isValid {return nil}
-            return request
-        } else {
-            guard transaction.sender != nil else {return nil}
-            guard let encodedData = transaction.encode() else {return nil}
-            let hex = encodedData.toHexString().addHexPrefix().lowercased()
-            var request = JSONRPCrequest()
-            request.method = JSONRPCmethod.sendRawTransaction
-            let params = [hex] as Array<Encodable>
-            let pars = JSONRPCparams(params: params)
-            request.params = pars
-            if !request.isValid {return nil}
-            return request
-        }
->>>>>>> f9234b1 (fix)
     }
 }
 
