@@ -117,12 +117,12 @@ public class ENS {
         guard let resolver = try? self.registry.getResolver(forDomain: node) else {
             throw Web3Error.processingError(desc: "Failed to get resolver for domain")
         }
-        guard let isNameSupports = try? resolver.supportsInterface(interfaceID: Resolver.InterfaceName.name.hash()) else {
-            throw Web3Error.processingError(desc: "Resolver don't support interface with this ID")
-        }
-        guard isNameSupports else {
-            throw Web3Error.processingError(desc: "Name isn't supported")
-        }
+//        guard let isNameSupports = try? resolver.supportsInterface(interfaceID: Resolver.InterfaceName.name.hash()) else {
+//            throw Web3Error.processingError(desc: "Resolver don't support interface with this ID")
+//        }
+//        guard isNameSupports else {
+//            throw Web3Error.processingError(desc: "Name isn't supported")
+//        }
         guard let name = try? resolver.getCanonicalName(forNode: node) else {
             throw Web3Error.processingError(desc: "Can't get name")
         }

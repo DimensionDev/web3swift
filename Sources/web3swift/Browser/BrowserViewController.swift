@@ -35,13 +35,19 @@ open class BrowserViewController: UIViewController {
         webView.configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
         return webView
     }()
+    
+    private var bundle: Bundle {
+        Bundle(for: BrowserViewController.self)
+    }
 
     lazy var config: WKWebViewConfiguration = {
         let config = WKWebViewConfiguration()
 
         var js = ""
 
-        if let filepath = Bundle.main.path(forResource: "browser.min", ofType: "js") {
+        let bundleURL = bundle.bundleURL.appendingPathComponent("Browser.bundle")
+        if let scripteBundle = Bundle(url: bundleURL),
+           let filepath = scripteBundle.path(forResource: "browser.min", ofType: "js") {
             do {
                 js += try String(contentsOfFile: filepath)
                 NSLog("Loaded browser.js")

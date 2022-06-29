@@ -7,6 +7,18 @@
 import Foundation
 import BigInt
 
+public struct JSONRPCEncodablerequest<T: Encodable>: Encodable {
+    public var jsonrpc: String = "2.0"
+    public var method: JSONRPCmethod?
+    public var params: T?
+    public var id: UInt64 = Counter.increment()
+    
+    public init(method: JSONRPCmethod, params: T?) {
+        self.method = method
+        self.params = params
+    }
+}
+
 /// Global counter object to enumerate JSON RPC requests.
 public struct Counter {
     public static var counter = UInt64(1)

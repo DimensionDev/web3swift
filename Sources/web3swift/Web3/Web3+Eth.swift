@@ -54,8 +54,8 @@ extension web3.Eth {
     /// This function is synchronous!
     ///
     /// Returns the Result object that indicates either success of failure.
-    public func sendRawTransaction(_ transaction: EthereumTransaction) throws -> TransactionSendingResult {
-        let result = try self.sendRawTransactionPromise(transaction).wait()
+    public func sendRawTransaction(_ transaction: EthereumTransaction, _  transactionEncodeData: Data? = nil) throws -> TransactionSendingResult {
+        let result = try self.sendRawTransactionPromise(transaction,transactionEncodeData).wait()
         return result
     }
 
