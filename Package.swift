@@ -12,25 +12,30 @@ let excludeFiles: String = []
 #endif
 
 let package = Package(
-    name: "Web3swift",
+    name: "web3swift",
     platforms: [
         .macOS(.v10_12), .iOS(.v11)
     ],
     products: [
-        .library(name: "web3swift", targets: ["web3swift"])
+        .library(name: "web3swift", targets: ["web3swift"]),
     ],
 
     dependencies: [
         .package(url: "https://github.com/attaswift/BigInt.git", .upToNextMinor(from: "5.3.0")),
+        .package(url: "https://github.com/Boilertalk/secp256k1.swift.git", .upToNextMinor(from: "0.1.0")),
         .package(url: "https://github.com/mxcl/PromiseKit.git", .upToNextMinor(from: "6.16.2")),
         .package(url: "https://github.com/daltoniam/Starscream.git", .upToNextMinor(from: "4.0.4")),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMinor(from: "1.5.1"))
     ],
     targets: [
-        .target(name: "secp256k1"),
         .target(
             name: "web3swift",
-            dependencies: ["BigInt", "secp256k1", "PromiseKit", "Starscream", "CryptoSwift"],
+            dependencies: [
+                "BigInt",
+                .product(name: "secp256k1", package: "secp256k1.swift"),
+                "PromiseKit",
+                "Starscream",
+                "CryptoSwift"],
             exclude: excludeFiles,
             resources: [
                 .copy("./Browser/browser.js"),
