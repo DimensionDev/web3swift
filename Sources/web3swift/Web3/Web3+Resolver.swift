@@ -28,8 +28,11 @@ public class PolicyResolver {
         tx.gasLimit = try await resolveGasEstimate(for: tx, with: policies.gasLimitPolicy)
 
         if case .eip1559 = tx.type {
-            tx.maxFeePerGas = await resolveGasBaseFee(for: policies.maxFeePerGasPolicy)
-            tx.maxPriorityFeePerGas = await resolveGasPriorityFee(for: policies.maxPriorityFeePerGasPolicy)
+            let baseFee = await resolveGasBaseFee(for: policies.maxFeePerGasPolicy)
+            let priorityFee = await resolveGasPriorityFee(for: policies.maxPriorityFeePerGasPolicy)
+
+            tx.maxPriorityFeePerGas = priorityFee
+            tx.maxFeePerGas = baseFee + priorityFee
         } else {
             tx.gasPrice = await resolveGasPrice(for: policies.gasPricePolicy)
         }
