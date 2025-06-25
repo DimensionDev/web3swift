@@ -239,8 +239,8 @@ public struct Utilities {
     /// Takes a hash of some message. What message is hashed should be checked by user separately.
     public static func hashECRecover(hash: Data, signature: Data) -> EthereumAddress? {
         if signature.count != 65 { return nil }
-        let rData = signature[0..<32].bytes
-        let sData = signature[32..<64].bytes
+        let rData = signature[0..<32].bytesArray
+        let sData = signature[32..<64].bytesArray
         var vData = signature[64]
         if vData >= 27 && vData <= 30 {
             vData -= 27
@@ -275,7 +275,7 @@ public struct Utilities {
     /// Unmarshals a 65 byte recoverable EC signature into internal structure.
     static func unmarshalSignature(signatureData: Data) -> SECP256K1.UnmarshaledSignature? {
         if signatureData.count != 65 { return nil }
-        let bytes = signatureData.bytes
+        let bytes = signatureData.bytesArray
         let r = Array(bytes[0..<32])
         let s = Array(bytes[32..<64])
         return SECP256K1.UnmarshaledSignature(v: bytes[64], r: Data(r), s: Data(s))
