@@ -296,17 +296,8 @@ public struct RLP {
     }
 }
 
-// check Xcode 26
-#if compiler(>=6.2)
 extension Data {
     public var bytesArray: [UInt8] {
         return Array(self)
     }
 }
-#else
-fileprivate extension Data {
-    var bytes: [UInt8] {
-        return Array(self)
-    }
-}
-#endif
