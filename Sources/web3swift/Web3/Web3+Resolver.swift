@@ -38,6 +38,12 @@ public class PolicyResolver {
         }
     }
 
+    public func resolveAll(for tx: CodableTransaction, with policies: Policies = .auto) async throws -> CodableTransaction {
+        var tx = tx
+        try await resolveAll(for: &tx, with: policies)
+        return tx
+    }
+
     public func resolveGasBaseFee(for policy: ValueResolutionPolicy) async -> BigUInt {
         switch policy {
         case .automatic:
