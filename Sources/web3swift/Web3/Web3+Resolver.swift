@@ -16,7 +16,7 @@ public class PolicyResolver {
         self.provider = provider
     }
 
-    public func resolveAllAggressive(for tx: inout CodableTransaction, with policies: Policies = .auto) async throws {
+    public func resolveAll(for tx: inout CodableTransaction, with policies: Policies = .auto) async throws {
         guard tx.from != nil || tx.sender != nil else {
             throw Web3Error.valueError(desc: "from and sender are nil")
         }
@@ -27,7 +27,7 @@ public class PolicyResolver {
         if case .eip1559 = tx.type {
             async let baseFeeAsync = resolveGasBaseFee(for: policies.maxFeePerGasPolicy)
             async let priorityFeeAsync = resolveGasPriorityFee(for: policies.maxPriorityFeePerGasPolicy)
-            async let gasLimitAsync = resolveGasEstimate(for: snapshot, with: policies.gasLimitPolicy) // 不等 nonce
+            async let gasLimitAsync = resolveGasEstimate(for: snapshot, with: policies.gasLimitPolicy) 
     
             tx.nonce = try await nonceAsync
             tx.gasLimit = try await gasLimitAsync
@@ -37,7 +37,7 @@ public class PolicyResolver {
             tx.maxFeePerGas = baseFee + priority
         } else {
             async let gasPriceAsync = resolveGasPrice(for: policies.gasPricePolicy)
-            async let gasLimitAsync = resolveGasEstimate(for: snapshot, with: policies.gasLimitPolicy) // 不等 nonce
+            async let gasLimitAsync = resolveGasEstimate(for: snapshot, with: policies.gasLimitPolicy) 
     
             tx.nonce = try await nonceAsync
             tx.gasLimit = try await gasLimitAsync
