@@ -16,25 +16,32 @@ public class PolicyResolver {
         self.provider = provider
     }
 
-    public func resolveAll(for tx: inout CodableTransaction, with policies: Policies = .auto) async throws {
-        if tx.from != nil || tx.sender != nil {
-            // Nonce should be resolved first - as this might be needed for some
-            // tx's gas estimation
-            tx.nonce = try await resolveNonce(for: tx, with: policies.noncePolicy)
-        } else {
-            throw Web3Error.valueError(desc: "Could not be resolved with both from and sender are nil")
+    public func resolveAllAggressive(for tx: inout CodableTransaction, with policies: Policies = .auto) async throws {
+        guard tx.from != nil || tx.sender != nil else {
+            throw Web3Error.valueError(desc: "from and sender are nil")
         }
-
-        tx.gasLimit = try await resolveGasEstimate(for: tx, with: policies.gasLimitPolicy)
-
+    
+        var snapshot = tx // safe snapshot for parallel estimate
+    
+        async let nonceAsync = resolveNonce(for: tx, with: policies.noncePolicy)
         if case .eip1559 = tx.type {
-            let baseFee = await resolveGasBaseFee(for: policies.maxFeePerGasPolicy)
-            let priorityFee = await resolveGasPriorityFee(for: policies.maxPriorityFeePerGasPolicy)
-
-            tx.maxPriorityFeePerGas = priorityFee
-            tx.maxFeePerGas = baseFee + priorityFee
+            async let baseFeeAsync = resolveGasBaseFee(for: policies.maxFeePerGasPolicy)
+            async let priorityFeeAsync = resolveGasPriorityFee(for: policies.maxPriorityFeePerGasPolicy)
+            async let gasLimitAsync = resolveGasEstimate(for: snapshot, with: policies.gasLimitPolicy) // 不等 nonce
+    
+            tx.nonce = try await nonceAsync
+            tx.gasLimit = try await gasLimitAsync
+            let baseFee = try await baseFeeAsync
+            let priority = try await priorityFeeAsync
+            tx.maxPriorityFeePerGas = priority
+            tx.maxFeePerGas = baseFee + priority
         } else {
-            tx.gasPrice = await resolveGasPrice(for: policies.gasPricePolicy)
+            async let gasPriceAsync = resolveGasPrice(for: policies.gasPricePolicy)
+            async let gasLimitAsync = resolveGasEstimate(for: snapshot, with: policies.gasLimitPolicy) // 不等 nonce
+    
+            tx.nonce = try await nonceAsync
+            tx.gasLimit = try await gasLimitAsync
+            tx.gasPrice = try await gasPriceAsync
         }
     }
 
