@@ -130,70 +130,48 @@ final public class Oracle {
     }
 
     private func suggestGasFeeLegacy() async throws -> [BigUInt] {
-        let latestBlockNumber: BigUInt = try await {
-            switch block {
-            case .latest:
-                return try await combineRequest(request: .blockNumber)
-            case let .exact(n):
-                return n
-            default:
-                throw Web3Error.valueError(desc: "Invalid block policy for gas fee suggestion.")
-            }
-        }()
-    
-        guard latestBlockNumber >= blockCount else { return [] }
-        let from: BigUInt = latestBlockNumber - blockCount
-        let to:   BigUInt = latestBlockNumber
-    
-        let blocks: [Block] = try await withThrowingTaskGroup(of: Block?.self, returning: [Block].self) { group in
-            var num = from
-            while num <= to {
-                let cur = num
-                group.addTask {
-                    try? await self.combineRequest(request: .getBlockByNumber(.exact(cur), true))
-                }
-                num += 1
-            }
-            var out = [Block]()
-            for try await b in group { if let b = b { out.append(b) } }
-            return out
+        var latestBlockNumber: BigUInt = 0
+        switch block {
+        case .latest:
+            let block: BigUInt = try await combineRequest(request: .blockNumber)
+            latestBlockNumber = block
+        case let .exact(number): latestBlockNumber = number
+        default: throw Web3Error.valueError(desc: "Unable to use '\(block)' policy to resolve block number to calculate gas fee suggestion.")
         }
-    
-        var samples = [BigUInt]()
-        samples.reserveCapacity(512)
-    
-        for b in blocks {
-            let baseFee = b.baseFeePerGas
-            for txCase in b.transactions {
-                guard case let .transaction(tx) = txCase else { continue }
-    
-                if let gp = tx.meta?.gasPrice, gp > 0 {
-                    samples.append(gp)
-                    continue
-                }
-    
-                if let maxFee = tx.maxFeePerGas,
-                   let tip = tx.maxPriorityFeePerGas {
-                    if let base = baseFee, base > 0 {
-                        let eff = min(maxFee, base + tip)
-                        if eff > 0 { samples.append(eff) }
-                    } else {
-                        if maxFee > 0 { samples.append(maxFee) }
+
+        /// checking if latest block number is greater than number of blocks to take in account
+        /// we're ignoring case when `latestBlockNumber` == `blockCount` since it's unlikely case
+        /// which we could neglect
+        guard latestBlockNumber > blockCount else { return [] }
+
+        // TODO: Make me work with cache
+        let blocks = try await withThrowingTaskGroup(of: Block.self, returning: [Block].self) { group in
+            (latestBlockNumber - blockCount ... latestBlockNumber)
+                .forEach { block in
+                    group.addTask {
+                        let result: Block = try await self.combineRequest(request: .getBlockByNumber(.exact(block), true))
+                        return result
                     }
-                    continue
                 }
+
+            var collected = [Block]()
+
+            for try await value in group {
+                collected.append(value)
+            }
+
+            return collected
+        }
+
+        let lastNthBlockGasPrice = blocks.flatMap { b -> [CodableTransaction] in
+            b.transactions.compactMap { t -> CodableTransaction? in
+                guard case let .transaction(transaction) = t else { return nil }
+                return transaction
             }
         }
-    
-        samples = samples.filter { $0 > 0 }.sorted()
-        guard !samples.isEmpty else { return [] }
-    
-        if samples.count > 50 {
-            let trim = max(1, samples.count / 100)
-            samples = Array(samples[trim..<(samples.count - trim)])
-        }
-    
-        return calculatePercentiles(for: samples)
+            .compactMap { $0.meta?.gasPrice ?? 0 }
+
+        return calculatePercentiles(for: lastNthBlockGasPrice)
     }
 
 }
