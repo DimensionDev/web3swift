@@ -137,47 +137,43 @@ final public class Oracle {
             case let .exact(n):
                 return n
             default:
-                throw Web3Error.valueError(desc: "Unable to use '\(block)' policy to resolve block number to calculate gas fee suggestion.")
+                throw Web3Error.valueError(desc: "Invalid block policy for gas fee suggestion.")
             }
         }()
-
+    
         guard latestBlockNumber >= blockCount else { return [] }
-        let from = latestBlockNumber &- blockCount
-        let to   = latestBlockNumber
-
+        let from: BigUInt = latestBlockNumber - blockCount
+        let to:   BigUInt = latestBlockNumber
+    
         let blocks: [Block] = try await withThrowingTaskGroup(of: Block?.self, returning: [Block].self) { group in
-            for num in from...to {
+            var num = from
+            while num <= to {
+                let cur = num
                 group.addTask {
-                    do {
-                        return try await self.combineRequest(request: .getBlockByNumber(.exact(num), true))
-                    } catch {
-                        return nil
-                    }
+                    try? await self.combineRequest(request: .getBlockByNumber(.exact(cur), true))
                 }
+                num += 1
             }
             var out = [Block]()
-            for try await b in group {
-                if let b { out.append(b) }
-            }
+            for try await b in group { if let b = b { out.append(b) } }
             return out
         }
-
+    
         var samples = [BigUInt]()
         samples.reserveCapacity(512)
-
+    
         for b in blocks {
             let baseFee = b.baseFeePerGas
-
-            for t in b.transactions {
-                guard case let .transaction(tx) = t else { continue }
-
+            for txCase in b.transactions {
+                guard case let .transaction(tx) = txCase else { continue }
+    
                 if let gp = tx.meta?.gasPrice, gp > 0 {
                     samples.append(gp)
                     continue
                 }
-
+    
                 if let maxFee = tx.maxFeePerGas,
-                   let tip    = tx.maxPriorityFeePerGas {
+                   let tip = tx.maxPriorityFeePerGas {
                     if let base = baseFee, base > 0 {
                         let eff = min(maxFee, base + tip)
                         if eff > 0 { samples.append(eff) }
@@ -186,20 +182,17 @@ final public class Oracle {
                     }
                     continue
                 }
-
-                if let eff = tx.effectiveGasPrice, eff > 0 {
-                    samples.append(eff)
-                }
             }
         }
-
+    
         samples = samples.filter { $0 > 0 }.sorted()
         guard !samples.isEmpty else { return [] }
+    
         if samples.count > 50 {
-            let k = max(1, samples.count / 100)
-            samples = Array(samples[k..<(samples.count - k)])
+            let trim = max(1, samples.count / 100)
+            samples = Array(samples[trim..<(samples.count - trim)])
         }
-
+    
         return calculatePercentiles(for: samples)
     }
 
