@@ -144,9 +144,12 @@ final public class Oracle {
         let blocks = try await withThrowingTaskGroup(of: Block?.self, returning: [Block].self) { group in
             (latestBlockNumber - blockCount ... latestBlockNumber).forEach { block in
                 group.addTask {
-                    return try? await self.combineRequest(
-                        request: .getBlockByNumber(.exact(block), true)
-                    )
+                     do {
+                            return try await self.combineRequest(request: .getBlockByNumber(.exact(block), true))
+                        } catch {
+                            print("decode fail:", error)
+                            return nil
+                        }
                 }
             }
         
