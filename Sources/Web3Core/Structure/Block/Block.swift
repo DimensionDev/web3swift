@@ -24,7 +24,7 @@ public struct Block {
     public var receiptsRoot: Data
     public var miner: EthereumAddress? // MARK: This is NOT optional in web3js
     public var difficulty: BigUInt
-    public var totalDifficulty: BigUInt
+    public var totalDifficulty: BigUInt?
     public var extraData: Data
     public var size: BigUInt
     public var gasLimit: BigUInt
@@ -83,7 +83,7 @@ extension Block: Decodable {
         }
 
         self.difficulty = try container.decodeHex(BigUInt.self, forKey: .difficulty)
-        self.totalDifficulty = try container.decodeHex(BigUInt.self, forKey: .totalDifficulty)
+        self.totalDifficulty = try? container.decodeHex(BigUInt.self, forKey: .totalDifficulty)
         self.extraData = try container.decodeHex(Data.self, forKey: .extraData)
         self.size = try container.decodeHex(BigUInt.self, forKey: .size)
         self.gasLimit = try container.decodeHex(BigUInt.self, forKey: .gasLimit)
