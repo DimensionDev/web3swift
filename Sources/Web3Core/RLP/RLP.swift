@@ -111,7 +111,7 @@ public struct RLP {
         return encoded.bytesArray[0]
     }
 
-    internal static func encode(_ elements: [Any?]) -> Data? {
+    public static func encode(_ elements: [Any?]) -> Data? {
         var encodedData = Data()
         for e in elements {
             if let encoded = encode(element: e) {
