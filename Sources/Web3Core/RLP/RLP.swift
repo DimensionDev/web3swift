@@ -301,3 +301,9 @@ extension Data {
         return Array(self)
     }
 }
+
+extension Data {
+    var bytes: [UInt8] {
+        return Array(self)
+    }
+}

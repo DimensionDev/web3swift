@@ -118,33 +118,40 @@ extension APIRequest {
     }
 
     public static func send(uRLRequest: URLRequest, with session: URLSession) async throws -> Data {
-        let (data, response) = try await session.data(for: uRLRequest)
+          let (data, response) = try await session.data(for: uRLRequest)
 
-        guard 200 ..< 400 ~= response.statusCode else {
-            if 400 ..< 500 ~= response.statusCode {
-                throw Web3Error.clientError(code: response.statusCode)
-            } else {
-                throw Web3Error.serverError(code: response.statusCode)
-            }
-        }
+          guard let httpResponse = response as? HTTPURLResponse else {
+              throw URLError(.badServerResponse)
+          }
 
-        if let error = JsonRpcErrorObject.init(from: data)?.error {
-            guard let parsedErrorCode = error.parsedErrorCode else {
-                throw Web3Error.rpcError(error)
-            }
-            let description = "\(parsedErrorCode.errorName). Error code: \(error.code). \(error.message)"
-            switch parsedErrorCode {
-            case .parseError, .invalidParams:
-                throw Web3Error.inputError(desc: description)
-            case .methodNotFound, .invalidRequest:
-                throw Web3Error.processingError(desc: description)
-            case .internalError, .serverError:
-                throw Web3Error.nodeError(desc: description)
-            }
-        }
+          let statusCode = httpResponse.statusCode
 
-        return data
-    }
+          guard 200 ..< 400 ~= statusCode else {
+              if 400 ..< 500 ~= statusCode {
+                  throw Web3Error.clientError(code: statusCode)
+              } else {
+                  throw Web3Error.serverError(code: statusCode)
+              }
+          }
+
+          if let error = JsonRpcErrorObject(from: data)?.error {
+              guard let parsedErrorCode = error.parsedErrorCode else {
+                  throw Web3Error.rpcError(error)
+              }
+
+              let description = "\(parsedErrorCode.errorName). Error code:\(error.code).\(error.message)"
+              switch parsedErrorCode {
+              case .parseError, .invalidParams:
+                  throw Web3Error.inputError(desc: description)
+              case .methodNotFound, .invalidRequest:
+                  throw Web3Error.processingError(desc: description)
+              case .internalError, .serverError:
+                  throw Web3Error.nodeError(desc: description)
+              }
+          }
+
+          return data
+      }
 }
 
 /// JSON RPC Error object. See official specification https://www.jsonrpc.org/specification#error_object
